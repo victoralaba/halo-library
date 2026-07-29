@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
+import android.net.Uri
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -133,31 +135,60 @@ fun ReaderScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (drawerTab == 0) {
-                        val chapters = uiState.epubData?.chapters ?: emptyList()
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            itemsIndexed(chapters) { idx, chap ->
-                                val isSelected = idx == uiState.currentChapterIndex
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.selectChapter(idx)
-                                            scope.launch { drawerState.close() }
-                                        },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) currentThemeColors.accentColor.copy(alpha = 0.2f) else Color.Transparent
-                                    )
-                                ) {
-                                    Text(
-                                        text = chap.title,
-                                        modifier = Modifier.padding(12.dp),
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) currentThemeColors.accentColor else currentThemeColors.textColor,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                        if (uiState.book?.fileType.equals("PDF", ignoreCase = true)) {
+                            val pageCount = uiState.pdfPageCount
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(pageCount) { p ->
+                                    val isSelected = p == uiState.currentPageIndex
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.selectPdfPage(p)
+                                                scope.launch { drawerState.close() }
+                                            },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected) currentThemeColors.accentColor.copy(alpha = 0.2f) else Color.Transparent
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "Page ${p + 1} of $pageCount",
+                                            modifier = Modifier.padding(12.dp),
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) currentThemeColors.accentColor else currentThemeColors.textColor
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            val chapters = uiState.epubData?.chapters ?: emptyList()
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                itemsIndexed(chapters) { idx, chap ->
+                                    val isSelected = idx == uiState.currentChapterIndex
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.selectChapter(idx)
+                                                scope.launch { drawerState.close() }
+                                            },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected) currentThemeColors.accentColor.copy(alpha = 0.2f) else Color.Transparent
+                                        )
+                                    ) {
+                                        Text(
+                                            text = chap.title,
+                                            modifier = Modifier.padding(12.dp),
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) currentThemeColors.accentColor else currentThemeColors.textColor,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -239,116 +270,170 @@ fun ReaderScreen(
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = uiState.book?.title ?: "Reading...",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = currentThemeColors.textColor
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                viewModel.stopTts()
-                                onNavigateBack()
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = currentThemeColors.textColor
+                if (!uiState.isImmersiveMode || uiState.isTtsViewMode) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = uiState.book?.title ?: "Reading...",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = currentThemeColors.textColor
                             )
-                        }
-                    },
-                    actions = {
-                        // Book Details & Metadata Dialog Trigger
-                        IconButton(onClick = { showMetadataDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = "Book Details & Metadata",
-                                tint = currentThemeColors.textColor
-                            )
-                        }
-
-                        // Table of Contents Drawer
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                imageVector = Icons.Default.MenuBook,
-                                contentDescription = "Table of Contents & Bookmarks",
-                                tint = currentThemeColors.textColor
-                            )
-                        }
-
-                        // Bookmark Toggle Button
-                        IconButton(
-                            onClick = {
-                                val currentTitle = currentChapter?.title ?: "Page ${uiState.currentPageIndex + 1}"
-                                viewModel.toggleBookmarkForCurrentLocation(
-                                    defaultTitle = currentTitle,
-                                    previewText = allSentencesInChapter.firstOrNull() ?: ""
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    viewModel.stopTts()
+                                    onNavigateBack()
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = currentThemeColors.textColor
                                 )
                             }
-                        ) {
-                            Icon(
-                                imageVector = if (isCurrentLocationBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                                contentDescription = if (isCurrentLocationBookmarked) "Remove Bookmark" else "Add Bookmark",
-                                tint = if (isCurrentLocationBookmarked) currentThemeColors.accentColor else currentThemeColors.textColor
-                            )
-                        }
+                        },
+                        actions = {
+                            // 1-Click View Switcher Toggle Button (Normal Doc Mode <-> TTS Audio View)
+                            Surface(
+                                onClick = { viewModel.toggleTtsViewMode() },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (uiState.isTtsViewMode) currentThemeColors.accentColor.copy(alpha = 0.2f) else currentThemeColors.surfaceColor,
+                                border = BorderStroke(1.dp, if (uiState.isTtsViewMode) currentThemeColors.accentColor else currentThemeColors.textColor.copy(alpha = 0.2f)),
+                                modifier = Modifier
+                                    .padding(end = 6.dp)
+                                    .testTag("reader_mode_toggle_button")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.isTtsViewMode) Icons.Default.MenuBook else Icons.Default.Headphones,
+                                        contentDescription = "Switch View Mode",
+                                        tint = if (uiState.isTtsViewMode) currentThemeColors.accentColor else currentThemeColors.textColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (uiState.isTtsViewMode) "Doc Mode" else "TTS View",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (uiState.isTtsViewMode) currentThemeColors.accentColor else currentThemeColors.textColor
+                                    )
+                                }
+                            }
 
-                        // Saved Highlights Shortcut
-                        IconButton(onClick = onNavigateToHighlights) {
-                            Icon(
-                                imageVector = Icons.Outlined.FormatQuote,
-                                contentDescription = "View Highlights",
-                                tint = currentThemeColors.textColor
-                            )
-                        }
+                            // Book Details & Metadata Dialog Trigger
+                            IconButton(onClick = { showMetadataDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = "Book Details & Metadata",
+                                    tint = currentThemeColors.textColor
+                                )
+                            }
 
-                        // TTS Engine Settings Shortcut
-                        IconButton(onClick = onNavigateToTtsSettings) {
-                            Icon(
-                                imageVector = Icons.Default.RecordVoiceOver,
-                                contentDescription = "TTS Voice Settings",
-                                tint = currentThemeColors.textColor
-                            )
-                        }
+                            // Table of Contents Drawer
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = "Table of Contents & Bookmarks",
+                                    tint = currentThemeColors.textColor
+                                )
+                            }
 
-                        // Appearance / Typography Settings
-                        IconButton(onClick = { showThemeSheet = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.FormatSize,
-                                contentDescription = "Appearance",
-                                tint = currentThemeColors.textColor
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = currentThemeColors.backgroundColor
+                            // Bookmark Toggle Button
+                            IconButton(
+                                onClick = {
+                                    val currentTitle = currentChapter?.title ?: "Page ${uiState.currentPageIndex + 1}"
+                                    viewModel.toggleBookmarkForCurrentLocation(
+                                        defaultTitle = currentTitle,
+                                        previewText = allSentencesInChapter.firstOrNull() ?: ""
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (isCurrentLocationBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                                    contentDescription = if (isCurrentLocationBookmarked) "Remove Bookmark" else "Add Bookmark",
+                                    tint = if (isCurrentLocationBookmarked) currentThemeColors.accentColor else currentThemeColors.textColor
+                                )
+                            }
+
+                            // Saved Highlights Shortcut
+                            IconButton(onClick = onNavigateToHighlights) {
+                                Icon(
+                                    imageVector = Icons.Outlined.FormatQuote,
+                                    contentDescription = "View Highlights",
+                                    tint = currentThemeColors.textColor
+                                )
+                            }
+
+                            // Appearance / Typography Settings
+                            IconButton(onClick = { showThemeSheet = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.FormatSize,
+                                    contentDescription = "Appearance",
+                                    tint = currentThemeColors.textColor
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = currentThemeColors.backgroundColor
+                        )
                     )
-                )
+                }
             },
             bottomBar = {
-                TtsControlBar(
-                    isPlaying = uiState.isTtsPlaying,
-                    isBuffering = uiState.isTtsBuffering,
-                    activeTextSnippet = if (uiState.activeSentenceIndex in allSentencesInChapter.indices)
-                        allSentencesInChapter[uiState.activeSentenceIndex] else "",
-                    speechRate = uiState.speechRate,
-                    statusMessage = uiState.ttsStatus,
-                    onPlayPauseToggle = {
-                        viewModel.toggleTtsPlayback(allSentencesInChapter, uiState.activeSentenceIndex.coerceAtLeast(0))
-                    },
-                    onSkipPrevious = viewModel::skipTtsPrevious,
-                    onSkipNext = viewModel::skipTtsNext,
-                    onStop = viewModel::stopTts,
-                    onRateChange = viewModel::setSpeechRate,
-                    onOpenTtsSettings = onNavigateToTtsSettings
-                )
+                if (!uiState.isImmersiveMode || uiState.isTtsViewMode) {
+                    if (uiState.isTtsViewMode) {
+                        TtsControlBar(
+                            isPlaying = uiState.isTtsPlaying,
+                            isBuffering = uiState.isTtsBuffering,
+                            activeTextSnippet = if (uiState.activeSentenceIndex in allSentencesInChapter.indices)
+                                allSentencesInChapter[uiState.activeSentenceIndex] else "",
+                            speechRate = uiState.speechRate,
+                            statusMessage = uiState.ttsStatus,
+                            onPlayPauseToggle = {
+                                viewModel.toggleTtsPlayback(allSentencesInChapter, uiState.activeSentenceIndex.coerceAtLeast(0))
+                            },
+                            onSkipPrevious = viewModel::skipTtsPrevious,
+                            onSkipNext = viewModel::skipTtsNext,
+                            onStop = viewModel::stopTts,
+                            onRateChange = viewModel::setSpeechRate,
+                            onOpenTtsSettings = onNavigateToTtsSettings
+                        )
+                    } else {
+                        if (uiState.isTtsPlaying || uiState.isTtsBuffering) {
+                            com.example.ui.components.MiniTtsPlayerBar(
+                                isPlaying = uiState.isTtsPlaying,
+                                isBuffering = uiState.isTtsBuffering,
+                                activeTextSnippet = if (uiState.activeSentenceIndex in allSentencesInChapter.indices)
+                                    allSentencesInChapter[uiState.activeSentenceIndex] else "",
+                                onPlayPauseToggle = {
+                                    viewModel.toggleTtsPlayback(allSentencesInChapter, uiState.activeSentenceIndex.coerceAtLeast(0))
+                                },
+                                onExpandTtsView = { viewModel.setTtsViewMode(true) },
+                                onStop = viewModel::stopTts
+                            )
+                        } else {
+                            val isPdf = uiState.book?.fileType.equals("PDF", ignoreCase = true)
+                            val totalCount = if (isPdf) uiState.pdfPageCount.coerceAtLeast(1) else (uiState.epubData?.chapters?.size ?: 1)
+                            val currentIndex = if (isPdf) uiState.currentPageIndex + 1 else uiState.currentChapterIndex + 1
+                            val progressPercent = if (totalCount > 0) ((currentIndex * 100) / totalCount).coerceIn(0, 100) else 0
+                            val progressText = if (isPdf) "Page $currentIndex of $totalCount • $progressPercent% Read" else "Chapter $currentIndex of $totalCount • $progressPercent% Read"
+
+                            com.example.ui.components.DocReaderBottomBar(
+                                chapterProgressText = progressText,
+                                onStartTts = { viewModel.setTtsViewMode(true) },
+                                onOpenAppearance = { showThemeSheet = true },
+                                onOpenToc = { scope.launch { drawerState.open() } }
+                            )
+                        }
+                    }
+                }
             },
             containerColor = currentThemeColors.backgroundColor
         ) { paddingValues ->
@@ -363,147 +448,304 @@ fun ReaderScreen(
                         modifier = Modifier.align(Alignment.Center),
                         color = currentThemeColors.accentColor
                     )
-                } else if (uiState.book?.fileType.equals("PDF", ignoreCase = true) && uiState.pdfCurrentBitmap != null) {
-                    // PDF Reader Mode
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
+                } else if (uiState.book?.fileType.equals("PDF", ignoreCase = true)) {
+                    if (!uiState.isTtsViewMode) {
+                        // Scrollable Native PDF Document View (Paging-based continuous document reading)
+                        com.example.ui.components.ScrollablePdfDocumentView(
+                            fileUri = Uri.parse(uiState.book?.filePath ?: ""),
+                            isAsset = uiState.book?.isAsset ?: false,
+                            assetName = if (uiState.book?.isAsset == true) uiState.book?.filePath else null,
+                            pageCount = uiState.pdfPageCount,
+                            initialPageIndex = uiState.currentPageIndex,
+                            themeColors = currentThemeColors,
+                            onPageSelected = { page -> viewModel.selectPdfPage(page) },
+                            onToggleImmersive = { viewModel.toggleImmersiveMode() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // TTS View for PDF Document
+                        Column(
                             modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(currentThemeColors.surfaceColor)
-                                .padding(8.dp),
-                            contentAlignment = Alignment.Center
+                                .fillMaxSize()
+                                .padding(horizontal = 20.dp)
+                                .testTag("pdf_tts_view")
                         ) {
-                            Image(
-                                bitmap = uiState.pdfCurrentBitmap!!.asImageBitmap(),
-                                contentDescription = "PDF Page ${uiState.currentPageIndex + 1}",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // PDF Page Controls
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            IconButton(
-                                onClick = { viewModel.selectPdfPage(uiState.currentPageIndex - 1) },
-                                enabled = uiState.currentPageIndex > 0
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(
-                                    Icons.Default.ChevronLeft,
-                                    contentDescription = "Previous Page",
-                                    tint = currentThemeColors.textColor
+                                Text(
+                                    text = "PDF Narration - Page ${uiState.currentPageIndex + 1}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = fontStyle,
+                                    color = currentThemeColors.textColor,
+                                    modifier = Modifier.weight(1f)
                                 )
+
+                                TextButton(
+                                    onClick = { viewModel.setTtsViewMode(false) },
+                                    modifier = Modifier.testTag("switch_to_doc_view_from_pdf_tts")
+                                ) {
+                                    Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Doc View", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
 
-                            Text(
-                                text = "Page ${uiState.currentPageIndex + 1} of ${uiState.pdfPageCount}",
-                                color = currentThemeColors.textColor,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                            Divider(color = currentThemeColors.textColor.copy(alpha = 0.15f))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                            IconButton(
-                                onClick = { viewModel.selectPdfPage(uiState.currentPageIndex + 1) },
-                                enabled = uiState.currentPageIndex < uiState.pdfPageCount - 1
+                            LazyColumn(
+                                state = listState,
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding = PaddingValues(bottom = 120.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.ChevronRight,
-                                    contentDescription = "Next Page",
-                                    tint = currentThemeColors.textColor
-                                )
+                                itemsIndexed(allSentencesInChapter) { index, sentenceText ->
+                                    val isSentenceActive = index == uiState.activeSentenceIndex
+
+                                    val animatedBgColor by animateColorAsState(
+                                        targetValue = if (isSentenceActive)
+                                            currentThemeColors.highlightGlowColor else Color.Transparent,
+                                        animationSpec = tween(durationMillis = 300),
+                                        label = "sentenceHighlightGlow"
+                                    )
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                viewModel.playFromSentence(allSentencesInChapter, index)
+                                            }
+                                            .testTag("pdf_sentence_item_$index"),
+                                        color = animatedBgColor,
+                                        tonalElevation = if (isSentenceActive) 4.dp else 0.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(12.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = sentenceText,
+                                                fontSize = uiState.fontSizeSp.sp,
+                                                lineHeight = (uiState.fontSizeSp * uiState.lineHeightMultiplier).sp,
+                                                fontFamily = fontStyle,
+                                                color = if (isSentenceActive)
+                                                    currentThemeColors.textHighlightColor else currentThemeColors.textColor,
+                                                fontWeight = if (isSentenceActive) FontWeight.Bold else FontWeight.Normal,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 } else {
-                    // EPUB / Text Reading Mode with Real-Time Sentence Tracking
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 20.dp)
-                    ) {
-                        // Chapter Title Header
-                        Text(
-                            text = currentChapter?.title ?: "Chapter 1",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = fontStyle,
-                            color = currentThemeColors.textColor,
-                            modifier = Modifier.padding(vertical = 12.dp)
-                        )
+                    if (!uiState.isTtsViewMode) {
+                        // Normal Doc View (Native E-Book Reader Experience)
+                        val chapters = uiState.epubData?.chapters ?: emptyList()
+                        val paragraphs = currentChapter?.paragraphs ?: emptyList()
 
-                        Divider(color = currentThemeColors.textColor.copy(alpha = 0.15f))
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Sentences List with Real-Time Glowing Highlight Pill & Tap-to-Speak
                         LazyColumn(
-                            state = listState,
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 120.dp)
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp)
+                                .testTag("normal_doc_reader_view"),
+                            contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
                         ) {
-                            itemsIndexed(allSentencesInChapter) { index, sentenceText ->
-                                val isSentenceActive = index == uiState.activeSentenceIndex
+                                // Header: Chapter Title & Book Subtitle
+                                item {
+                                    Column(modifier = Modifier.padding(bottom = 20.dp)) {
+                                        Text(
+                                            text = uiState.book?.title?.uppercase() ?: "DOCUMENT",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = currentThemeColors.accentColor,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.2.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = currentChapter?.title ?: "Chapter ${uiState.currentChapterIndex + 1}",
+                                            fontSize = (uiState.fontSizeSp + 6).sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = fontStyle,
+                                            color = currentThemeColors.textColor
+                                        )
+                                        Spacer(modifier = Modifier.height(14.dp))
+                                        Divider(color = currentThemeColors.textColor.copy(alpha = 0.15f))
+                                    }
+                                }
 
-                                val animatedBgColor by animateColorAsState(
-                                    targetValue = if (isSentenceActive)
-                                        currentThemeColors.highlightGlowColor else Color.Transparent,
-                                    animationSpec = tween(durationMillis = 300),
-                                    label = "sentenceHighlightGlow"
-                                )
+                                // Paragraphs in continuous doc layout (Clean E-Book Reader View)
+                                itemsIndexed(paragraphs) { paraIdx, paraText ->
+                                    val activeSentence = if (uiState.activeSentenceIndex in allSentencesInChapter.indices)
+                                        allSentencesInChapter[uiState.activeSentenceIndex] else null
+                                    val isParaActive = activeSentence != null && paraText.contains(activeSentence)
 
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            viewModel.playFromSentence(allSentencesInChapter, index)
-                                        }
-                                        .testTag("sentence_item_$index"),
-                                    color = animatedBgColor,
-                                    tonalElevation = if (isSentenceActive) 4.dp else 0.dp
-                                ) {
-                                    Row(
+                                    Surface(
                                         modifier = Modifier
-                                            .padding(8.dp)
-                                            .fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                viewModel.toggleImmersiveMode()
+                                            }
+                                            .testTag("doc_paragraph_$paraIdx"),
+                                        color = if (isParaActive) currentThemeColors.highlightGlowColor else Color.Transparent
                                     ) {
                                         Text(
-                                            text = sentenceText,
+                                            text = paraText,
                                             fontSize = uiState.fontSizeSp.sp,
                                             lineHeight = (uiState.fontSizeSp * uiState.lineHeightMultiplier).sp,
                                             fontFamily = fontStyle,
-                                            color = if (isSentenceActive)
-                                                currentThemeColors.textHighlightColor else currentThemeColors.textColor,
-                                            fontWeight = if (isSentenceActive) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.weight(1f)
+                                            color = if (isParaActive) currentThemeColors.textHighlightColor else currentThemeColors.textColor,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 4.dp, vertical = 4.dp)
                                         )
+                                    }
+                                }
 
-                                        // Quick Highlight & Note Action Button
-                                        IconButton(
-                                            onClick = {
-                                                selectedSnippetForNote = sentenceText
-                                                showAddNoteDialog = true
-                                            },
-                                            modifier = Modifier.size(32.dp)
+                                // Chapter Navigation Buttons Footer
+                                item {
+                                    Spacer(modifier = Modifier.height(32.dp))
+                                    Divider(color = currentThemeColors.textColor.copy(alpha = 0.15f))
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { viewModel.selectChapter(uiState.currentChapterIndex - 1) },
+                                            enabled = uiState.currentChapterIndex > 0,
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = currentThemeColors.textColor),
+                                            modifier = Modifier.testTag("doc_prev_chapter_button")
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.FormatQuote,
-                                                contentDescription = "Save Highlight",
-                                                tint = currentThemeColors.textColor.copy(alpha = 0.5f),
-                                                modifier = Modifier.size(18.dp)
+                                            Icon(Icons.Default.ChevronLeft, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Previous Chapter")
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { viewModel.selectChapter(uiState.currentChapterIndex + 1) },
+                                            enabled = uiState.currentChapterIndex < chapters.size - 1,
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = currentThemeColors.textColor),
+                                            modifier = Modifier.testTag("doc_next_chapter_button")
+                                        ) {
+                                            Text("Next Chapter")
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                }
+                            }
+                    } else {
+                        // TTS Audio View (Sentence-by-Sentence Narration Mode)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 20.dp)
+                                .testTag("tts_audio_narration_view")
+                        ) {
+                            // Chapter Title Header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = currentChapter?.title ?: "Chapter 1",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = fontStyle,
+                                    color = currentThemeColors.textColor,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                TextButton(
+                                    onClick = { viewModel.setTtsViewMode(false) },
+                                    modifier = Modifier.testTag("switch_to_doc_view_button")
+                                ) {
+                                    Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Doc View", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Divider(color = currentThemeColors.textColor.copy(alpha = 0.15f))
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Sentences List with Real-Time Glowing Highlight Pill & Tap-to-Speak
+                            LazyColumn(
+                                state = listState,
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
+                                itemsIndexed(allSentencesInChapter) { index, sentenceText ->
+                                    val isSentenceActive = index == uiState.activeSentenceIndex
+
+                                    val animatedBgColor by animateColorAsState(
+                                        targetValue = if (isSentenceActive)
+                                            currentThemeColors.highlightGlowColor else Color.Transparent,
+                                        animationSpec = tween(durationMillis = 300),
+                                        label = "sentenceHighlightGlow"
+                                    )
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                viewModel.playFromSentence(allSentencesInChapter, index)
+                                            }
+                                            .testTag("sentence_item_$index"),
+                                        color = animatedBgColor,
+                                        tonalElevation = if (isSentenceActive) 4.dp else 0.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(8.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = sentenceText,
+                                                fontSize = uiState.fontSizeSp.sp,
+                                                lineHeight = (uiState.fontSizeSp * uiState.lineHeightMultiplier).sp,
+                                                fontFamily = fontStyle,
+                                                color = if (isSentenceActive)
+                                                    currentThemeColors.textHighlightColor else currentThemeColors.textColor,
+                                                fontWeight = if (isSentenceActive) FontWeight.Bold else FontWeight.Normal,
+                                                modifier = Modifier.weight(1f)
                                             )
+
+                                            // Quick Highlight & Note Action Button
+                                            IconButton(
+                                                onClick = {
+                                                    selectedSnippetForNote = sentenceText
+                                                    showAddNoteDialog = true
+                                                },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.FormatQuote,
+                                                    contentDescription = "Save Highlight",
+                                                    tint = currentThemeColors.textColor.copy(alpha = 0.5f),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }

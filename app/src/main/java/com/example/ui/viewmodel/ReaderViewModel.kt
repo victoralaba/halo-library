@@ -24,6 +24,8 @@ data class ReaderUiState(
     val lineHeightMultiplier: Float = 1.5f,
     val fontFamily: String = "Serif", // "Serif", "SansSerif", "Monospace"
     val themeMode: ReaderThemeMode = ReaderThemeMode.DARK_OBSIDIAN,
+    val isTtsViewMode: Boolean = false, // false = Normal Doc View, true = TTS Audio View
+    val isImmersiveMode: Boolean = false, // Fullscreen reading mode (hides bars when reading)
     val isTtsPlaying: Boolean = false,
     val isTtsBuffering: Boolean = false,
     val activeSentenceIndex: Int = -1,
@@ -267,6 +269,22 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setThemeMode(mode: ReaderThemeMode) {
         _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setTtsViewMode(enabled: Boolean) {
+        _uiState.update { it.copy(isTtsViewMode = enabled, isImmersiveMode = false) }
+    }
+
+    fun toggleTtsViewMode() {
+        _uiState.update { it.copy(isTtsViewMode = !it.isTtsViewMode, isImmersiveMode = false) }
+    }
+
+    fun toggleImmersiveMode() {
+        _uiState.update { it.copy(isImmersiveMode = !it.isImmersiveMode) }
+    }
+
+    fun setImmersiveMode(enabled: Boolean) {
+        _uiState.update { it.copy(isImmersiveMode = enabled) }
     }
 
     fun jumpToBookmark(bookmark: BookmarkEntity) {
