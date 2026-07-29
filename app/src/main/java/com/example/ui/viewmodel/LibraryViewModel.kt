@@ -34,7 +34,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         context = application,
         bookDao = db.bookDao(),
         highlightDao = db.highlightDao(),
-        bookmarkDao = db.bookmarkDao()
+        bookmarkDao = db.bookmarkDao(),
+        readingPositionDao = db.readingPositionDao()
     )
 
     private val _searchQuery = MutableStateFlow("")

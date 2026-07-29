@@ -45,7 +45,8 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         context = application,
         bookDao = db.bookDao(),
         highlightDao = db.highlightDao(),
-        bookmarkDao = db.bookmarkDao()
+        bookmarkDao = db.bookmarkDao(),
+        readingPositionDao = db.readingPositionDao()
     )
 
     val ttsManager = TtsManager(application)
@@ -83,11 +84,16 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
+            // Fetch last saved position from Room database
+            val savedPosition = repository.getSavedPosition(book.filePath, book.id)
+            val initialChapter = savedPosition?.chapterIndex ?: book.lastReadChapter
+            val initialPage = savedPosition?.pageIndex ?: book.lastReadPage
+
             _uiState.update {
                 it.copy(
                     book = book,
-                    currentChapterIndex = book.lastReadChapter,
-                    currentPageIndex = book.lastReadPage
+                    currentChapterIndex = initialChapter,
+                    currentPageIndex = initialPage
                 )
             }
 
@@ -210,7 +216,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     private fun saveReadingProgress(chapterIndex: Int, pageIndex: Int, total: Int) {
         val book = _uiState.value.book ?: return
         viewModelScope.launch {
-            repository.updateReadingProgress(book.id, chapterIndex, pageIndex, total)
+            repository.saveReadingPosition(book.filePath, book.id, chapterIndex, pageIndex, total)
         }
     }
 

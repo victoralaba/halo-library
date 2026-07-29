@@ -19,7 +19,8 @@ class BookRepository(
     private val context: Context,
     private val bookDao: BookDao,
     private val highlightDao: HighlightDao,
-    private val bookmarkDao: BookmarkDao
+    private val bookmarkDao: BookmarkDao,
+    private val readingPositionDao: ReadingPositionDao
 ) {
     companion object {
         private const val TAG = "BookRepository"
@@ -242,6 +243,24 @@ class BookRepository(
             page = pageIndex,
             progress = progress.coerceIn(0f, 100f)
         )
+    }
+
+    suspend fun getSavedPosition(documentKey: String, bookId: Long): ReadingPositionEntity? {
+        return readingPositionDao.getPositionByKey(documentKey) ?: readingPositionDao.getPositionByBookId(bookId)
+    }
+
+    suspend fun saveReadingPosition(documentKey: String, bookId: Long, chapterIndex: Int, pageIndex: Int, totalItems: Int) {
+        val progress = if (totalItems > 0) ((pageIndex + 1).toFloat() / totalItems.toFloat()) * 100f else 0f
+        val pos = ReadingPositionEntity(
+            documentKey = documentKey,
+            bookId = bookId,
+            chapterIndex = chapterIndex,
+            pageIndex = pageIndex,
+            progressPercentage = progress.coerceIn(0f, 100f),
+            lastReadTimestamp = System.currentTimeMillis()
+        )
+        readingPositionDao.savePosition(pos)
+        updateReadingProgress(bookId, chapterIndex, pageIndex, totalItems)
     }
 
     suspend fun toggleFavorite(bookId: Long, isFavorite: Boolean) {
