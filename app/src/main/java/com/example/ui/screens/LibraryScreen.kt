@@ -41,6 +41,7 @@ import com.example.ui.viewmodel.LibraryViewModel
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel,
+    onOpenDrawer: () -> Unit,
     onBookClick: (bookId: Long) -> Unit,
     onNavigateToHighlights: () -> Unit,
     onNavigateToTtsSettings: () -> Unit,
@@ -69,6 +70,17 @@ fun LibraryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(
+                        onClick = onOpenDrawer,
+                        modifier = Modifier.testTag("open_sidebar_drawer_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Open Sidebar Menu"
+                        )
+                    }
+                },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(

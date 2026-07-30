@@ -121,6 +121,13 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun addTrackToPlaylist(track: AudioTrackEntity, playlistId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addTrackToPlaylist(track, playlistId)
+            _uiState.update { it.copy(statusMessage = "Added '${track.title}' to playlist") }
+        }
+    }
+
     fun deletePlaylist(playlist: AudioPlaylistEntity) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.deletePlaylist(playlist)

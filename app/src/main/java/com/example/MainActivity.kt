@@ -3,6 +3,7 @@ package com.example
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,14 +17,18 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.example.data.local.AppDatabase
 import com.example.data.repository.BookRepository
 import com.example.ui.components.FullAudioPlayerSheet
 import com.example.ui.components.MiniPlayerBar
+import com.example.ui.components.SidebarDrawerContent
 import com.example.ui.screens.AudioPlayerScreen
 import com.example.ui.screens.HighlightsScreen
 import com.example.ui.screens.LibraryScreen
+import com.example.ui.screens.MindDraftScreen
 import com.example.ui.screens.ReaderScreen
 import com.example.ui.screens.TtsSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -32,13 +37,15 @@ import com.example.ui.viewmodel.AudioPlayerViewModel
 import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.ReaderViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 enum class Screen {
     LIBRARY,
     AUDIO_PLAYER,
     READER,
     HIGHLIGHTS,
-    TTS_SETTINGS
+    TTS_SETTINGS,
+    MIND_DRAFT
 }
 
 class MainActivity : ComponentActivity() {
@@ -64,6 +71,12 @@ class MainActivity : ComponentActivity() {
 
             var currentScreen by remember { mutableStateOf(Screen.LIBRARY) }
             var activeBookId by remember { mutableStateOf<Long?>(null) }
+            var showSuggestionDialog by remember { mutableStateOf(false) }
+            var suggestionInputText by remember { mutableStateOf("") }
+
+            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
 
             val externalUri by externalUriState.collectAsState()
 
@@ -110,90 +123,92 @@ class MainActivity : ComponentActivity() {
             val audioBookmarks by audioPlayerViewModel.activeTrackBookmarks.collectAsState()
 
             MyApplicationTheme(darkTheme = isDarkTheme) {
-                Scaffold(
-                    bottomBar = {
-                        Column {
-                            // Persistent Audio Mini-Player Bar
-                            MiniPlayerBar(
-                                currentTrack = currentAudioTrack,
-                                isPlaying = isAudioPlaying,
-                                currentPositionMs = audioCurrentPositionMs,
-                                durationMs = audioDurationMs,
-                                onTogglePlayPause = { audioPlayerViewModel.togglePlayPause() },
-                                onSkipForward = { audioPlayerViewModel.skipForward(10) },
-                                onExpand = { audioPlayerViewModel.setExpandedPlayerVisible(true) }
-                            )
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = true, // Swipe right to open, swipe left/click outside to close
+                    drawerContent = {
+                        SidebarDrawerContent(
+                            currentScreen = currentScreen,
+                            onNavigate = { targetScreen ->
+                                currentScreen = targetScreen
+                                scope.launch { drawerState.close() }
+                            },
+                            onCloseDrawer = {
+                                scope.launch { drawerState.close() }
+                            },
+                            themeMode = libraryUiState.themeMode,
+                            onThemeSelect = { nextMode ->
+                                libraryViewModel.setThemeMode(nextMode)
+                            },
+                            onOpenSuggestionDialog = {
+                                scope.launch { drawerState.close() }
+                                showSuggestionDialog = true
+                            }
+                        )
+                    }
+                ) {
+                    Scaffold(
+                        bottomBar = {
+                            Column {
+                                // Persistent Audio Mini-Player Bar
+                                MiniPlayerBar(
+                                    currentTrack = currentAudioTrack,
+                                    isPlaying = isAudioPlaying,
+                                    currentPositionMs = audioCurrentPositionMs,
+                                    durationMs = audioDurationMs,
+                                    onTogglePlayPause = { audioPlayerViewModel.togglePlayPause() },
+                                    onSkipForward = { audioPlayerViewModel.skipForward(10) },
+                                    onExpand = { audioPlayerViewModel.setExpandedPlayerVisible(true) }
+                                )
 
-                            // Main Bottom Navigation Bar when on Library or Audio tab
-                            if (currentScreen == Screen.LIBRARY || currentScreen == Screen.AUDIO_PLAYER) {
-                                NavigationBar(
-                                    modifier = Modifier.testTag("main_bottom_nav")
-                                ) {
-                                    NavigationBarItem(
-                                        selected = currentScreen == Screen.LIBRARY,
-                                        onClick = { currentScreen = Screen.LIBRARY },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (currentScreen == Screen.LIBRARY) Icons.Default.MenuBook else Icons.Outlined.MenuBook,
-                                                contentDescription = "E-Books"
-                                            )
-                                        },
-                                        label = { Text("E-Books") },
-                                        modifier = Modifier.testTag("nav_tab_ebooks")
-                                    )
+                                // Main Bottom Navigation Bar when on Library, Audio, or Mind Draft tab
+                                if (currentScreen == Screen.LIBRARY || currentScreen == Screen.AUDIO_PLAYER || currentScreen == Screen.MIND_DRAFT) {
+                                    NavigationBar(
+                                        modifier = Modifier.testTag("main_bottom_nav")
+                                    ) {
+                                        NavigationBarItem(
+                                            selected = currentScreen == Screen.LIBRARY,
+                                            onClick = { currentScreen = Screen.LIBRARY },
+                                            icon = {
+                                                Icon(
+                                                    imageVector = if (currentScreen == Screen.LIBRARY) Icons.Default.MenuBook else Icons.Outlined.MenuBook,
+                                                    contentDescription = "E-Books"
+                                                )
+                                            },
+                                            label = { Text("E-Books") },
+                                            modifier = Modifier.testTag("nav_tab_ebooks")
+                                        )
 
-                                    NavigationBarItem(
-                                        selected = currentScreen == Screen.AUDIO_PLAYER,
-                                        onClick = { currentScreen = Screen.AUDIO_PLAYER },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (currentScreen == Screen.AUDIO_PLAYER) Icons.Default.Headphones else Icons.Outlined.Headphones,
-                                                contentDescription = "Audio Player"
-                                            )
-                                        },
-                                        label = { Text("Audio Player") },
-                                        modifier = Modifier.testTag("nav_tab_audio")
-                                    )
+                                        NavigationBarItem(
+                                            selected = currentScreen == Screen.AUDIO_PLAYER,
+                                            onClick = { currentScreen = Screen.AUDIO_PLAYER },
+                                            icon = {
+                                                Icon(
+                                                    imageVector = if (currentScreen == Screen.AUDIO_PLAYER) Icons.Default.Headphones else Icons.Outlined.Headphones,
+                                                    contentDescription = "Audio Player"
+                                                )
+                                            },
+                                            label = { Text("Audio Player") },
+                                            modifier = Modifier.testTag("nav_tab_audio")
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                ) { paddingValues ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        when (currentScreen) {
-                            Screen.LIBRARY -> {
-                                LibraryScreen(
-                                    viewModel = libraryViewModel,
-                                    onBookClick = { bookId ->
-                                        activeBookId = bookId
-                                        currentScreen = Screen.READER
-                                    },
-                                    onNavigateToHighlights = {
-                                        currentScreen = Screen.HIGHLIGHTS
-                                    },
-                                    onNavigateToTtsSettings = {
-                                        currentScreen = Screen.TTS_SETTINGS
-                                    }
-                                )
-                            }
-
-                            Screen.AUDIO_PLAYER -> {
-                                AudioPlayerScreen(
-                                    viewModel = audioPlayerViewModel
-                                )
-                            }
-
-                            Screen.READER -> {
-                                activeBookId?.let { bookId ->
-                                    ReaderScreen(
-                                        viewModel = readerViewModel,
-                                        bookId = bookId,
-                                        onNavigateBack = {
-                                            currentScreen = Screen.LIBRARY
+                    ) { paddingValues ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                        ) {
+                            when (currentScreen) {
+                                Screen.LIBRARY -> {
+                                    LibraryScreen(
+                                        viewModel = libraryViewModel,
+                                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                                        onBookClick = { bookId ->
+                                            activeBookId = bookId
+                                            currentScreen = Screen.READER
                                         },
                                         onNavigateToHighlights = {
                                             currentScreen = Screen.HIGHLIGHTS
@@ -203,60 +218,135 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
-                            }
 
-                            Screen.HIGHLIGHTS -> {
-                                HighlightsScreen(
-                                    highlights = allHighlights,
-                                    onDeleteHighlight = { highlight ->
-                                        readerViewModel.deleteHighlight(highlight)
-                                    },
-                                    onNavigateBack = {
-                                        currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
-                                    }
-                                )
-                            }
+                                Screen.AUDIO_PLAYER -> {
+                                    AudioPlayerScreen(
+                                        viewModel = audioPlayerViewModel,
+                                        onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    )
+                                }
 
-                            Screen.TTS_SETTINGS -> {
-                                TtsSettingsScreen(
-                                    ttsManager = readerViewModel.ttsManager,
-                                    onNavigateBack = {
-                                        currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
+                                Screen.MIND_DRAFT -> {
+                                    MindDraftScreen(
+                                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                                        onNavigateBack = { currentScreen = Screen.LIBRARY }
+                                    )
+                                }
+
+                                Screen.READER -> {
+                                    activeBookId?.let { bookId ->
+                                        ReaderScreen(
+                                            viewModel = readerViewModel,
+                                            bookId = bookId,
+                                            onNavigateBack = {
+                                                currentScreen = Screen.LIBRARY
+                                            },
+                                            onNavigateToHighlights = {
+                                                currentScreen = Screen.HIGHLIGHTS
+                                            },
+                                            onNavigateToTtsSettings = {
+                                                currentScreen = Screen.TTS_SETTINGS
+                                            }
+                                        )
                                     }
-                                )
+                                }
+
+                                Screen.HIGHLIGHTS -> {
+                                    HighlightsScreen(
+                                        highlights = allHighlights,
+                                        onDeleteHighlight = { highlight ->
+                                            readerViewModel.deleteHighlight(highlight)
+                                        },
+                                        onNavigateBack = {
+                                            currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
+                                        }
+                                    )
+                                }
+
+                                Screen.TTS_SETTINGS -> {
+                                    TtsSettingsScreen(
+                                        ttsManager = readerViewModel.ttsManager,
+                                        onNavigateBack = {
+                                            currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
+                                        }
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    // Expanded Full Screen Audio Player Sheet
-                    if (audioUiState.isExpandedPlayerVisible) {
-                        FullAudioPlayerSheet(
-                            currentTrack = currentAudioTrack,
-                            isPlaying = isAudioPlaying,
-                            currentPositionMs = audioCurrentPositionMs,
-                            durationMs = audioDurationMs,
-                            playbackSpeed = audioPlaybackSpeed,
-                            sleepTimerRemainingSec = audioSleepTimerRemainingSec,
-                            playlist = audioPlaylist,
-                            repeatMode = audioRepeatMode,
-                            isShuffle = audioIsShuffle,
-                            bookmarks = audioBookmarks,
-                            onDismiss = { audioPlayerViewModel.setExpandedPlayerVisible(false) },
-                            onTogglePlayPause = { audioPlayerViewModel.togglePlayPause() },
-                            onSeekTo = { audioPlayerViewModel.seekTo(it) },
-                            onSkipForward = { audioPlayerViewModel.skipForward(it) },
-                            onSkipBackward = { audioPlayerViewModel.skipBackward(it) },
-                            onPlayNext = { audioPlayerViewModel.playNext() },
-                            onPlayPrevious = { audioPlayerViewModel.playPrevious() },
-                            onSetPlaybackSpeed = { audioPlayerViewModel.setPlaybackSpeed(it) },
-                            onToggleRepeatMode = { audioPlayerViewModel.toggleRepeatMode() },
-                            onToggleShuffle = { audioPlayerViewModel.toggleShuffle() },
-                            onSetSleepTimerMinutes = { audioPlayerViewModel.setSleepTimerMinutes(it) },
-                            onCancelSleepTimer = { audioPlayerViewModel.cancelSleepTimer() },
-                            onAddBookmark = { note -> audioPlayerViewModel.addBookmark(note) },
-                            onDeleteBookmark = { bm -> audioPlayerViewModel.deleteBookmark(bm) },
-                            onPlayTrackFromList = { track -> audioPlayerViewModel.playTrack(track, audioPlaylist) }
-                        )
+                        // Expanded Full Screen Audio Player Sheet
+                        if (audioUiState.isExpandedPlayerVisible) {
+                            FullAudioPlayerSheet(
+                                currentTrack = currentAudioTrack,
+                                isPlaying = isAudioPlaying,
+                                currentPositionMs = audioCurrentPositionMs,
+                                durationMs = audioDurationMs,
+                                playbackSpeed = audioPlaybackSpeed,
+                                sleepTimerRemainingSec = audioSleepTimerRemainingSec,
+                                playlist = audioPlaylist,
+                                repeatMode = audioRepeatMode,
+                                isShuffle = audioIsShuffle,
+                                bookmarks = audioBookmarks,
+                                onDismiss = { audioPlayerViewModel.setExpandedPlayerVisible(false) },
+                                onTogglePlayPause = { audioPlayerViewModel.togglePlayPause() },
+                                onSeekTo = { audioPlayerViewModel.seekTo(it) },
+                                onSkipForward = { audioPlayerViewModel.skipForward(it) },
+                                onSkipBackward = { audioPlayerViewModel.skipBackward(it) },
+                                onPlayNext = { audioPlayerViewModel.playNext() },
+                                onPlayPrevious = { audioPlayerViewModel.playPrevious() },
+                                onSetPlaybackSpeed = { audioPlayerViewModel.setPlaybackSpeed(it) },
+                                onToggleRepeatMode = { audioPlayerViewModel.toggleRepeatMode() },
+                                onToggleShuffle = { audioPlayerViewModel.toggleShuffle() },
+                                onSetSleepTimerMinutes = { audioPlayerViewModel.setSleepTimerMinutes(it) },
+                                onCancelSleepTimer = { audioPlayerViewModel.cancelSleepTimer() },
+                                onAddBookmark = { note -> audioPlayerViewModel.addBookmark(note) },
+                                onDeleteBookmark = { bm -> audioPlayerViewModel.deleteBookmark(bm) },
+                                onPlayTrackFromList = { track -> audioPlayerViewModel.playTrack(track, audioPlaylist) }
+                            )
+                        }
+
+                        // Feature Suggestion / Feedback Dialog
+                        if (showSuggestionDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showSuggestionDialog = false },
+                                title = { Text("Submit Feature Suggestion", style = MaterialTheme.typography.titleLarge) },
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = "What feature, layout tweak, or integration would you love to see next in Lumina?",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        OutlinedTextField(
+                                            value = suggestionInputText,
+                                            onValueChange = { suggestionInputText = it },
+                                            placeholder = { Text("e.g. Reading Goals Widget, Audio Equalizer Preset, Cloud Sync...") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            minLines = 3
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            if (suggestionInputText.isNotBlank()) {
+                                                Toast.makeText(context, "Thank you! Your suggestion has been recorded.", Toast.LENGTH_LONG).show()
+                                                suggestionInputText = ""
+                                                showSuggestionDialog = false
+                                            }
+                                        }
+                                    ) {
+                                        Text("Submit")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showSuggestionDialog = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }

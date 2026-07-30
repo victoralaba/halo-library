@@ -1,5 +1,5 @@
 {
-  "name": "Lumina Book Reader",
+  "name": "Lumina Reader",
   "description": "Lightweight PDF and EPUB book reader with natural Gemini TTS audio, real-time sentence highlight playback, dark/light/sepia themes, and offline library support.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

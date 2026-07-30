@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -44,6 +45,7 @@ enum class AudioTab {
 @Composable
 fun AudioPlayerScreen(
     viewModel: AudioPlayerViewModel,
+    onOpenDrawer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -111,11 +113,20 @@ fun AudioPlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onOpenDrawer,
+                        modifier = Modifier.testTag("audio_player_hamburger_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Open Sidebar Menu"
+                        )
+                    }
                     Icon(
                         imageVector = Icons.Default.Headphones,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -377,16 +388,14 @@ fun AudioPlayerScreen(
                     if (allPlaylists.isEmpty()) {
                         Text("No playlists available. Create a playlist first.")
                     } else {
-                        allPlaylists.forEach { playlist ->
+                        allPlaylists.forEach { targetPl ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable {
                                         trackForAddToPlaylist?.let { tr ->
-                                            viewModel.viewModelScope.launch {
-                                                viewModel.repository.addTrackToPlaylist(tr, playlist.id)
-                                            }
+                                            viewModel.addTrackToPlaylist(tr, targetPl.id)
                                         }
                                         showAddToPlaylistDialog = false
                                     }
@@ -396,8 +405,8 @@ fun AudioPlayerScreen(
                                 Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text(playlist.name, fontWeight = FontWeight.SemiBold)
-                                    Text("${playlist.trackCount} tracks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(targetPl.name, fontWeight = FontWeight.SemiBold)
+                                    Text("${targetPl.trackCount} tracks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
