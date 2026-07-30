@@ -30,7 +30,7 @@ import com.example.ui.screens.HighlightsScreen
 import com.example.ui.screens.LibraryScreen
 import com.example.ui.screens.MindDraftScreen
 import com.example.ui.screens.ReaderScreen
-import com.example.ui.screens.TtsSettingsScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.ReaderThemeMode
 import com.example.ui.viewmodel.AudioPlayerViewModel
@@ -44,6 +44,7 @@ enum class Screen {
     AUDIO_PLAYER,
     READER,
     HIGHLIGHTS,
+    SETTINGS,
     TTS_SETTINGS,
     MIND_DRAFT
 }
@@ -214,7 +215,7 @@ class MainActivity : ComponentActivity() {
                                             currentScreen = Screen.HIGHLIGHTS
                                         },
                                         onNavigateToTtsSettings = {
-                                            currentScreen = Screen.TTS_SETTINGS
+                                            currentScreen = Screen.SETTINGS
                                         }
                                     )
                                 }
@@ -245,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                                 currentScreen = Screen.HIGHLIGHTS
                                             },
                                             onNavigateToTtsSettings = {
-                                                currentScreen = Screen.TTS_SETTINGS
+                                                currentScreen = Screen.SETTINGS
                                             }
                                         )
                                     }
@@ -263,9 +264,16 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
-                                Screen.TTS_SETTINGS -> {
-                                    TtsSettingsScreen(
+                                Screen.SETTINGS, Screen.TTS_SETTINGS -> {
+                                    SettingsScreen(
                                         ttsManager = readerViewModel.ttsManager,
+                                        currentThemeMode = libraryUiState.themeMode,
+                                        onThemeSelect = { mode ->
+                                            libraryViewModel.setThemeMode(mode)
+                                        },
+                                        onResetLibrary = {
+                                            libraryViewModel.resetLibrary()
+                                        },
                                         onNavigateBack = {
                                             currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
                                         }

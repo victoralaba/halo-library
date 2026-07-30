@@ -115,6 +115,14 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         _themeMode.value = mode
     }
 
+    fun resetLibrary() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.initializePreloadedBooksIfEmpty()
+            _isLoading.value = false
+        }
+    }
+
     fun importBook(uri: Uri) {
         viewModelScope.launch {
             try {

@@ -51,18 +51,11 @@ fun SidebarDrawerContent(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // Header Banner
+            // Header Banner (Clean Solid Blue)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.primary)
                     .padding(20.dp)
             ) {
                 Column {
@@ -72,7 +65,7 @@ fun SidebarDrawerContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
                             shape = CircleShape,
                             modifier = Modifier.size(44.dp)
                         ) {
@@ -90,12 +83,13 @@ fun SidebarDrawerContent(
                             onClick = onCloseDrawer,
                             modifier = Modifier
                                 .testTag("close_sidebar_button")
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f), CircleShape)
                                 .size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Sidebar",
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -107,38 +101,38 @@ fun SidebarDrawerContent(
                         text = "Lumina Reader",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "Offline Reader & Audio Suite",
+                        text = "Offline Book Reader & Audio Suite",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(8.dp)
-                                    .background(Color(0xFF4CAF50), CircleShape)
+                                    .size(6.dp)
+                                    .background(Color(0xFF81C784), CircleShape)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "v1.2 • Zero Latency Offline Engine",
+                                text = "v1.2 • Zero Cloud Latency",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -147,35 +141,13 @@ fun SidebarDrawerContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Primary Navigation Section
+            // Navigation Menu
             Text(
-                text = "MAIN MENU",
+                text = "NAVIGATION",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("E-Books Library", fontWeight = FontWeight.SemiBold) },
-                icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
-                selected = currentScreen == Screen.LIBRARY,
-                onClick = { onNavigate(Screen.LIBRARY) },
-                modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 2.dp)
-                    .testTag("drawer_item_library"),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Audio Player & Books", fontWeight = FontWeight.SemiBold) },
-                icon = { Icon(Icons.Default.Headphones, contentDescription = null) },
-                selected = currentScreen == Screen.AUDIO_PLAYER,
-                onClick = { onNavigate(Screen.AUDIO_PLAYER) },
-                modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 2.dp)
-                    .testTag("drawer_item_audio_player"),
-                shape = RoundedCornerShape(12.dp)
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
 
             // Mind Draft - Lightweight Notepad
@@ -186,22 +158,22 @@ fun SidebarDrawerContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Mind Draft", fontWeight = FontWeight.Bold)
+                        Text("Mind Draft", fontWeight = FontWeight.SemiBold)
                         Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
                                 text = ".TXT Note",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
                 },
-                icon = { Icon(Icons.Default.EditNote, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
+                icon = { Icon(Icons.Default.EditNote, contentDescription = null) },
                 selected = currentScreen == Screen.MIND_DRAFT,
                 onClick = { onNavigate(Screen.MIND_DRAFT) },
                 modifier = Modifier
@@ -222,10 +194,10 @@ fun SidebarDrawerContent(
             )
 
             NavigationDrawerItem(
-                label = { Text("TTS Engine & Settings", fontWeight = FontWeight.SemiBold) },
-                icon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
-                selected = currentScreen == Screen.TTS_SETTINGS,
-                onClick = { onNavigate(Screen.TTS_SETTINGS) },
+                label = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                selected = currentScreen == Screen.SETTINGS,
+                onClick = { onNavigate(Screen.SETTINGS) },
                 modifier = Modifier
                     .padding(horizontal = 12.dp, vertical = 2.dp)
                     .testTag("drawer_item_settings"),
