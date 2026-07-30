@@ -110,6 +110,23 @@ class MainActivity : ComponentActivity() {
             }
             val allHighlights by repository.allHighlights.collectAsState(initial = emptyList())
 
+            LaunchedEffect(Unit) {
+                val prefs = applicationContext.getSharedPreferences("lumina_app_settings_prefs", android.content.Context.MODE_PRIVATE)
+                val autoScan = prefs.getBoolean("auto_detect_dir_startup", true)
+                if (autoScan) {
+                    val folderPrefs = applicationContext.getSharedPreferences("lumina_scan_folders_prefs", android.content.Context.MODE_PRIVATE)
+                    val folderUris = folderPrefs.getStringSet("scan_folders_set", emptySet())?.toList() ?: emptyList()
+                    if (folderUris.isNotEmpty()) {
+                        com.example.data.parser.StorageScanner.scanFolders(
+                            context = applicationContext,
+                            folderUris = folderUris,
+                            bookRepository = repository,
+                            audioRepository = audioPlayerViewModel.repository
+                        )
+                    }
+                }
+            }
+
             // Audio Player States
             val audioUiState by audioPlayerViewModel.uiState.collectAsState()
             val currentAudioTrack by audioPlayerViewModel.currentTrack.collectAsState()
@@ -276,7 +293,10 @@ class MainActivity : ComponentActivity() {
                                         },
                                         onNavigateBack = {
                                             currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
-                                        }
+                                        },
+                                        bookRepository = repository,
+                                        audioRepository = audioPlayerViewModel.repository,
+                                        audioPlayerViewModel = audioPlayerViewModel
                                     )
                                 }
                             }

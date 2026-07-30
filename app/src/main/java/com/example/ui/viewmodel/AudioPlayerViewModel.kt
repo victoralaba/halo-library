@@ -170,8 +170,17 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
     fun playNext() = playerManager.playNext()
     fun playPrevious() = playerManager.playPrevious()
     fun seekTo(positionMs: Long) = playerManager.seekTo(positionMs)
-    fun skipForward(seconds: Int = 10) = playerManager.skipForward(seconds)
-    fun skipBackward(seconds: Int = 10) = playerManager.skipBackward(seconds)
+    private val prefs = application.getSharedPreferences("lumina_app_settings_prefs", android.content.Context.MODE_PRIVATE)
+
+    fun skipForward(seconds: Int? = null) {
+        val sec = seconds ?: prefs.getInt("skip_interval_seconds", 10)
+        playerManager.skipForward(sec)
+    }
+
+    fun skipBackward(seconds: Int? = null) {
+        val sec = seconds ?: prefs.getInt("skip_interval_seconds", 10)
+        playerManager.skipBackward(sec)
+    }
     fun setPlaybackSpeed(speed: Float) = playerManager.setPlaybackSpeed(speed)
     fun toggleRepeatMode() = playerManager.toggleRepeatMode()
     fun toggleShuffle() = playerManager.toggleShuffle()
