@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -969,8 +970,16 @@ fun SettingsScreen(
                                             .fillMaxWidth()
                                             .clickable {
                                                 ttsManager.stop()
-                                                cacheSizeBytes = BackupRestoreManager.getAppCacheSize(context)
-                                                Toast.makeText(context, "App session re-initialized successfully!", Toast.LENGTH_SHORT).show()
+                                                audioPlayerViewModel?.pause()
+                                                Toast.makeText(context, "Restarting application...", Toast.LENGTH_SHORT).show()
+                                                val pm = context.packageManager
+                                                val restartIntent = pm.getLaunchIntentForPackage(context.packageName)
+                                                if (restartIntent != null) {
+                                                    restartIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                                    context.startActivity(restartIntent)
+                                                    (context as? android.app.Activity)?.finish()
+                                                    Runtime.getRuntime().exit(0)
+                                                }
                                             }
                                             .padding(vertical = 6.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,

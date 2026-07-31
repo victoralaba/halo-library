@@ -11,6 +11,7 @@ import android.os.CountDownTimer
 import android.util.Log
 import com.example.data.local.AudioTrackEntity
 import com.example.data.repository.AudioRepository
+import com.example.data.repository.ReadingStatsRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,11 @@ class AudioPlayerManager private constructor(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var positionUpdateJob: Job? = null
     private var repository: AudioRepository? = null
+    private var statsRepository: ReadingStatsRepository? = null
+
+    fun setStatsRepository(statsRepo: ReadingStatsRepository) {
+        this.statsRepository = statsRepo
+    }
 
     // State Flows
     private val _currentTrack = MutableStateFlow<AudioTrackEntity?>(null)
@@ -308,12 +314,18 @@ class AudioPlayerManager private constructor(private val context: Context) {
 
     private fun startPositionUpdater() {
         stopPositionUpdater()
+        var accumulatedHalfSecs = 0
         positionUpdateJob = scope.launch {
-            while (isActive) {
+            while (coroutineContext.isActive) {
                 try {
                     mediaPlayer?.let { mp ->
                         if (mp.isPlaying) {
                             _currentPositionMs.value = mp.currentPosition.toLong()
+                            accumulatedHalfSecs++
+                            if (accumulatedHalfSecs >= 2) {
+                                statsRepository?.addAudioListeningTime(1L)
+                                accumulatedHalfSecs = 0
+                            }
                         }
                     }
                 } catch (e: Exception) {

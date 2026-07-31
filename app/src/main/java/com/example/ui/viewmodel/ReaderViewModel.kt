@@ -8,10 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.*
 import com.example.data.parser.*
 import com.example.data.repository.BookRepository
+import com.example.data.repository.ReadingStatsRepository
 import com.example.data.tts.TtsManager
 import com.example.ui.theme.ReaderThemeMode
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 data class ReaderUiState(
     val book: BookEntity? = null,
@@ -54,6 +56,24 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiState = MutableStateFlow(ReaderUiState())
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
 
+    private val statsRepository = ReadingStatsRepository.getInstance(
+        context = application,
+        bookDao = db.bookDao(),
+        audioTrackDao = db.audioTrackDao()
+    )
+
+    private var readingTimerJob: kotlinx.coroutines.Job? = null
+
+    private fun startReadingTimeTracker() {
+        readingTimerJob?.cancel()
+        readingTimerJob = viewModelScope.launch {
+            while (coroutineContext.isActive) {
+                kotlinx.coroutines.delay(5000L) // Record +5s of active reading time every 5 seconds
+                statsRepository.addEbookReadingTime(5L)
+            }
+        }
+    }
+
     private var activeBookId: Long = -1
 
     init {
@@ -75,6 +95,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
 
     fun loadBook(bookId: Long) {
         activeBookId = bookId
+        startReadingTimeTracker()
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 

@@ -30,12 +30,16 @@ import com.example.ui.screens.HighlightsScreen
 import com.example.ui.screens.LibraryScreen
 import com.example.ui.screens.MindDraftScreen
 import com.example.ui.screens.ReaderScreen
+import com.example.ui.screens.ReadingStatsScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.ReaderThemeMode
 import com.example.ui.viewmodel.AudioPlayerViewModel
 import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.ReaderViewModel
+import com.example.ui.viewmodel.ReadingStatsViewModel
+import com.example.data.repository.ReadingStatsRepository
+import com.example.data.audio.AudioPlayerManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
@@ -46,7 +50,8 @@ enum class Screen {
     HIGHLIGHTS,
     SETTINGS,
     TTS_SETTINGS,
-    MIND_DRAFT
+    MIND_DRAFT,
+    READING_STATS
 }
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private val libraryViewModel: LibraryViewModel by viewModels()
     private val readerViewModel: ReaderViewModel by viewModels()
     private val audioPlayerViewModel: AudioPlayerViewModel by viewModels()
+    private val readingStatsViewModel: ReadingStatsViewModel by viewModels()
 
     private val externalUriState = MutableStateFlow<Uri?>(null)
 
@@ -111,6 +117,13 @@ class MainActivity : ComponentActivity() {
             val allHighlights by repository.allHighlights.collectAsState(initial = emptyList())
 
             LaunchedEffect(Unit) {
+                val statsRepo = ReadingStatsRepository.getInstance(
+                    context = applicationContext,
+                    bookDao = db.bookDao(),
+                    audioTrackDao = db.audioTrackDao()
+                )
+                AudioPlayerManager.getInstance(applicationContext).setStatsRepository(statsRepo)
+
                 val prefs = applicationContext.getSharedPreferences("lumina_app_settings_prefs", android.content.Context.MODE_PRIVATE)
                 val autoScan = prefs.getBoolean("auto_detect_dir_startup", true)
                 if (autoScan) {
@@ -278,6 +291,13 @@ class MainActivity : ComponentActivity() {
                                         onNavigateBack = {
                                             currentScreen = if (activeBookId != null) Screen.READER else Screen.LIBRARY
                                         }
+                                    )
+                                }
+
+                                Screen.READING_STATS -> {
+                                    ReadingStatsScreen(
+                                        viewModel = readingStatsViewModel,
+                                        onNavigateBack = { currentScreen = Screen.LIBRARY }
                                     )
                                 }
 

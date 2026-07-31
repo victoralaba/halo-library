@@ -97,28 +97,6 @@ fun LibraryScreen(
                     }
                 },
                 actions = {
-                    // TTS Engine Settings
-                    IconButton(
-                        onClick = onNavigateToTtsSettings,
-                        modifier = Modifier.testTag("tts_settings_nav_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.RecordVoiceOver,
-                            contentDescription = "TTS Engine Settings"
-                        )
-                    }
-
-                    // Highlights Shortcut
-                    IconButton(
-                        onClick = onNavigateToHighlights,
-                        modifier = Modifier.testTag("highlights_nav_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FormatQuote,
-                            contentDescription = "Saved Highlights"
-                        )
-                    }
-
                     // Theme Quick Switch
                     IconButton(
                         onClick = {

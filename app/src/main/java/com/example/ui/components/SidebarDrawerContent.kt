@@ -183,6 +183,17 @@ fun SidebarDrawerContent(
             )
 
             NavigationDrawerItem(
+                label = { Text("Reading Statistics", fontWeight = FontWeight.SemiBold) },
+                icon = { Icon(Icons.Outlined.BarChart, contentDescription = null) },
+                selected = currentScreen == Screen.READING_STATS,
+                onClick = { onNavigate(Screen.READING_STATS) },
+                modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 2.dp)
+                    .testTag("drawer_item_reading_stats"),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            NavigationDrawerItem(
                 label = { Text("Saved Highlights & Quotes", fontWeight = FontWeight.SemiBold) },
                 icon = { Icon(Icons.Outlined.FormatQuote, contentDescription = null) },
                 selected = currentScreen == Screen.HIGHLIGHTS,

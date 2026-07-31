@@ -25,6 +25,9 @@ object BackupRestoreManager {
             put("background_audio_playback", prefs.getBoolean("background_audio_playback", true))
             put("auto_resume_audio_position", prefs.getBoolean("auto_resume_audio_position", true))
             put("skip_interval_seconds", prefs.getInt("skip_interval_seconds", 10))
+            if (prefs.contains("reader_theme_mode")) {
+                put("reader_theme_mode", prefs.getString("reader_theme_mode", null))
+            }
         }
         root.put("preferences", prefsJson)
 
@@ -176,6 +179,9 @@ object BackupRestoreManager {
                     if (prefObj.has("background_audio_playback")) putBoolean("background_audio_playback", prefObj.getBoolean("background_audio_playback"))
                     if (prefObj.has("auto_resume_audio_position")) putBoolean("auto_resume_audio_position", prefObj.getBoolean("auto_resume_audio_position"))
                     if (prefObj.has("skip_interval_seconds")) putInt("skip_interval_seconds", prefObj.getInt("skip_interval_seconds"))
+                    if (prefObj.has("reader_theme_mode") && !prefObj.isNull("reader_theme_mode")) {
+                        putString("reader_theme_mode", prefObj.getString("reader_theme_mode"))
+                    }
                     apply()
                 }
             }

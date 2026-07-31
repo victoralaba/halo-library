@@ -167,6 +167,7 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun togglePlayPause() = playerManager.togglePlayPause()
+    fun pause() = playerManager.pause()
     fun playNext() = playerManager.playNext()
     fun playPrevious() = playerManager.playPrevious()
     fun seekTo(positionMs: Long) = playerManager.seekTo(positionMs)

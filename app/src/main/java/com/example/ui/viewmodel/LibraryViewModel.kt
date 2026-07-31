@@ -27,7 +27,30 @@ enum class BookFilter {
     FAVORITES
 }
 
+private const val PREFS_SETTINGS = "lumina_app_settings_prefs"
+private const val KEY_THEME_MODE = "reader_theme_mode"
+
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val prefs = application.getSharedPreferences(PREFS_SETTINGS, android.content.Context.MODE_PRIVATE)
+
+    private fun getInitialThemeMode(): ReaderThemeMode {
+        val saved = prefs.getString(KEY_THEME_MODE, null)
+        if (saved != null) {
+            try {
+                return ReaderThemeMode.valueOf(saved)
+            } catch (e: Exception) {
+                // fallback to system default
+            }
+        }
+        val app = getApplication<Application>()
+        val uiMode = app.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return if (uiMode == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
+            ReaderThemeMode.DARK_OBSIDIAN
+        } else {
+            ReaderThemeMode.LIGHT_PAPER
+        }
+    }
 
     private val db = AppDatabase.getDatabase(application)
     private val repository = BookRepository(
@@ -40,7 +63,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedFilter = MutableStateFlow(BookFilter.ALL)
-    private val _themeMode = MutableStateFlow(ReaderThemeMode.DARK_OBSIDIAN)
+    private val _themeMode = MutableStateFlow(getInitialThemeMode())
     private val _isLoading = MutableStateFlow(true)
     private val _statusMessage = MutableStateFlow<String?>(null)
 
@@ -113,6 +136,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     fun setThemeMode(mode: ReaderThemeMode) {
         _themeMode.value = mode
+        prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
     }
 
     fun resetLibrary() {
